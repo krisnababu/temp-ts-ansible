@@ -1,0 +1,112 @@
+---
+# task file for env setup
+     - name: Install virtualenv
+       command: 'pip3 install virtualenv'
+
+     - name: create user transtats
+       user:
+         name: '{{ application_user }}'
+         password: '$y$j9T$Z9j.RIk8qvi.wVB0bvQ///$W6e/q1qn4BeerzGVMx5cF77Az4EreNagZcau0JgA2.0'
+         shell: /bin/bash
+         comment: "transtats"
+         uid: 1040
+
+     - name: Get url
+       shell: curl -s {{ application_url }} | cut -d '/' -f8 | cut -d '"' -f1
+       register: version
+
+     - set_fact:
+         transtats_version: "{{ version.stdout }}"
+         cacheable: true
+     - debug:
+         msg: "{{ transtats_version }}"
+
+     - name: Download latest transtats tarfile
+       get_url:
+         dest: '{{ user_home }}/transtats.tar.gz'
+         url: "https://github.com/transtats/transtats/archive/{{ transtats_version }}.tar.gz"
+         force: yes
+       become: true
+       become_user: '{{ application_user }}'
+       when: release_testing == "false"
+
+     - name: Download test target transtats zip file
+       get_url:
+         dest: '{{ user_home }}/transtats.zip'
+         url: "{{ test_target_url }}"
+         force: yes
+       become: true
+       become_user: '{{ application_user }}'
+       when: release_testing == "true"
+
+     - name: Extract transtats.tar.gz into '{{ user_home }}'
+       unarchive:
+         src: '{{ user_home }}/transtats.tar.gz'
+         dest: '{{ user_home }}/'
+         remote_src: yes
+       become: true
+       become_user: '{{ application_user }}'
+       when: release_testing == "false"
+
+     - name: Extract transtats.zip into '{{ user_home }}'
+       unarchive:
+         src: '{{ user_home }}/transtats.zip'
+         dest: '{{ user_home }}/'
+         remote_src: yes
+       become: true
+       become_user: '{{ application_user }}'
+       when: release_testing == "true"
+
+     - name: Remove existing app_home
+       file:
+         path: '{{ app_home }}'
+         state: absent
+
+     - name: Move code to '{{ user_home }}'/transtats
+       shell: 'mv {{ user_home }}/transtats*/  {{ app_home }}/'
+       become: true
+       become_user: '{{ application_user }}'
+
+     - name: Create virtual env
+       command: 'virtualenv --system-site-packages --python=python3 projectenv'
+       args:
+         chdir: '{{ app_home }}'
+       become: true
+       become_user: '{{ application_user }}'
+
+     - name: Activate virtualenv
+       shell: 'source projectenv/bin/activate'
+       args:
+         chdir: '{{ app_home }}'
+       become: true
+       become_user: '{{ application_user }}'
+
+     - name: Copying key.json.example to key.json
+       command: 'cp {{ app_home }}/{{ app_name }}/settings/keys.json.example {{ app_home }}/{{ app_name }}/settings/keys.json'
+       become: true
+       become_user: '{{ application_user }}'
+
+     - name: Updating keys.json with required values
+       lineinfile:
+         path: '{{ app_home }}/{{ app_name }}/settings/keys.json'
+         regexp: '^(.*)"DATABASE_HOST"(.*)$'
+         line: '  "DATABASE_HOST": {{ groups.database | to_json | replace("[", "") | replace("]", "") }},'
+       become: true
+       become_user: '{{ application_user }}'
+
+     - name: install package-requirements
+       pip:
+         requirements: '{{ requirements_path }}'
+         state: latest
+         virtualenv: '{{ app_home }}/projectenv'
+         virtualenv_command: virtualenv
+         virtualenv_site_packages: yes
+       become: true
+       become_user: '{{ application_user }}'
+
+     - name: Activate virtualenv, Run make migrate & make static and initlogin
+       shell: 'source projectenv/bin/activate && make migrate && make static && ./manage.py initlogin'
+       args:
+         chdir: '{{ app_home }}'
+       become: true
+       become_user: '{{ application_user }}'

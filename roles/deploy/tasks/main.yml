@@ -1,0 +1,196 @@
+---
+# task file for deploy
+    - name: Crete {{ application_user }} group
+      group:
+        name: '{{ application_user }}'
+        state: present
+      ignore_errors: true
+
+    - name: Add the nginx user to your group
+      command: 'usermod -a -G {{ application_user }} nginx'
+
+    - name: Give our user group execute permissions on our home directory
+      file:
+        path: '{{ user_home }}'
+        mode: '0710'
+
+    - name: Create transtats.service file
+      copy:
+        content: |
+          [Unit]
+          Description=transtats daemon
+          Requires=transtats.socket
+          After=network.target
+
+          [Service]
+          User={{ application_user }}
+          Group=nginx
+          WorkingDirectory={{ app_home }}
+          ExecStart={{ app_home }}/projectenv/bin/gunicorn --workers 3 --bind unix:/run/transtats.sock transtats.wsgi:application
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/transtats.service
+
+    - name: Create transtats.socket
+      copy:
+        content: |
+          [Unit]
+          Description=transtats socket
+
+          [Socket]
+          ListenStream=/run/transtats.sock
+          # Our service won't need permissions for the socket, since it
+          # inherits the file descriptor by socket activation
+          # only the nginx daemon will need access to the socket
+          User=nginx
+          # Optionally restrict the socket permissions even more.
+          # Mode=600
+
+          [Install]
+          WantedBy=sockets.target
+        dest: /etc/systemd/system/transtats.socket
+
+    - name: Set SELinux permissive permanently
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX=(.*)$'
+        line: 'SELINUX=permissive'
+
+    - name: Set SELinux permissive
+      shell: '/usr/sbin/setenforce 0'
+
+    - name: Start transtats service
+      service:
+        name: transtats.service
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
+
+    - name: Start transtats socket
+      service:
+        name: transtats.socket
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
+
+    - name: remove lines
+      replace:
+        path: /etc/nginx/nginx.conf
+        regexp: '(?s)   server {.*?listen.*?# Settings for a TLS enabled server.'
+        replace: ''
+        backup: yes
+
+    - name: Copy content to nginx.conf 
+      blockinfile: 
+        path: /etc/nginx/nginx.conf
+        insertafter: 'include.*\/etc\/nginx\/conf.d.*'
+        content: | 
+          server {
+                   listen 80;
+                   server_name _;
+
+                  location / {
+                     proxy_set_header Host $http_host;
+                     proxy_set_header X-Real-IP $remote_addr;
+                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                     proxy_set_header X-Forwarded-Proto $scheme;
+                     proxy_pass http://unix:/run/transtats.sock;
+                     proxy_connect_timeout 300s;
+                     proxy_read_timeout 300s;
+                  }
+                } 
+
+          # Settings for a TLS enabled server.
+
+    - name: Start firewalld service
+      service:
+        name: firewalld
+        state: started
+
+    - name: Add port 80/tcp to firewall
+      firewalld:
+        port: 80/tcp
+        permanent: yes
+        immediate: yes
+        state: enabled
+
+    - name: Sart nginx service
+      service:
+        name: nginx
+        enabled: yes
+        state: started
+
+# Celery configuration
+
+    - name: Copying .ini file to supervisord.d directory
+      copy: src={{ item.src }} dest={{ item.dest }} remote_src=yes
+      with_items:
+        - { src: '{{ app_home }}/deploy/nginx/redis.ini', dest: '/etc/supervisord.d/redis.ini' }
+        - { src: '{{ app_home }}/deploy/nginx/transtats_celery.ini', dest: '/etc/supervisord.d/transtats_celery.ini' }
+        - { src: '{{ app_home }}/deploy/nginx/transtats_celerybeat.ini', dest: '/etc/supervisord.d/transtats_celerybeat.ini' }
+
+    - name: Creating run and Celery under '{{ app_home }}'
+      file:
+        path: '{{ item }}'
+        owner: '{{ application_user }}'
+        state: directory
+      with_items:
+        - '{{ app_home }}/run'
+        - '{{ app_home }}/transtats/logs/celery'
+
+    - name: Creating log files '{{ app_home }}/transtats/logs/celery'
+      file:
+        path: '{{ item }}'
+        owner: '{{ application_user }}'
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+      with_items:
+        - '{{ app_home }}/transtats/logs/celery/redis.log'
+        - '{{ app_home }}/transtats/logs/celery/redis_err.log'
+        - '{{ app_home }}/transtats/logs/celery/transtats_worker.log'
+        - '{{ app_home }}/transtats/logs/celery/transtats_beat.log'
+
+    - name: Starting and enabling redis service
+      service:
+        name: redis
+        state: started
+        enabled: yes
+
+    - name: Find PID of supervisord process
+      command: /usr/bin/pgrep supervisord
+      register: spid
+      ignore_errors: yes
+
+    - name: Kill supervisord process
+      command: /usr/bin/kill -9 '{{ spid.stdout }}'
+      ignore_errors: yes
+
+    - name: supervisord job .pid
+      command: /usr/bin/supervisord -c /etc/supervisord.conf -j '{{ app_home }}'/run/supervisord.pid  
+
+# Test Celery configuration
+
+    - name: Test Celery configuration
+      command: /usr/bin/redis-cli ping
+      register: redis_cli_output
+
+    - debug:
+        msg: '`redis-cli ping` replied with PONG'
+      when: "'PONG' in redis_cli_output.stdout"
+
+    - name: Check transtatscelery status
+      shell: /usr/bin/supervisorctl status transtatscelery
+      register: transtatscelery_output
+
+    - debug:
+        var: transtatscelery_output
+
+    - name: Check transtatscelerybeat status
+      shell: /usr/bin/supervisorctl status transtatscelerybeat
+      register: transtatscelerybeat_output
+
+    - debug:
+        var: transtatscelerybeat_output
+

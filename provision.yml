@@ -1,0 +1,23 @@
+---
+- name: Setup database for transtats
+  hosts: database
+  become: true
+  vars_files:
+    - "env_vars/env.yml"
+    - "vars/common-vars.yml"
+    - "vars/{{ ansible_distribution }}-vars.yml"
+  roles:
+    - db
+
+- name: Setup platform for transtats
+  hosts: transtats
+  become: true
+  vars_files:
+    - "env_vars/env.yml"
+    - "vars/common-vars.yml"
+    - "vars/{{ ansible_distribution }}-vars.yml"
+  roles:
+    - setup
+    - env
+    - deploy
+
