@@ -8,7 +8,7 @@ pipeline{
         }
         
 
-	stage('Create virtualenv, run behave features and generate allure reports'){
+	stage('Create virtualenv, run behave features'){
 	    steps{
                 dir("ui-test"){
 		   sh '''
@@ -17,6 +17,30 @@ pipeline{
 		      pip3 install -r requirements.txt
 		      ~/.local/bin/behave features
 		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
+		      ~/allure/bin/allure serve reports/
+		   '''  
+                }
+            }
+        }
+	
+	stage('Generate allure jason report'){
+	    steps{
+                dir("ui-test"){
+		   sh '''
+		      #!/bin/bash
+		      source venv/bin/activate
+		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
+		   '''  
+                }
+            }
+        }
+	
+	stage('Generate allure html report'){
+	    steps{
+                dir("ui-test"){
+		   sh '''
+		      #!/bin/bash
+		      source venv/bin/activate
 		      ~/allure/bin/allure serve reports/
 		   '''  
                 }
