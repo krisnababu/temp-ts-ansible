@@ -17,7 +17,7 @@ pipeline{
 		      pip3 install -r requirements.txt
 		      ~/.local/bin/behave features
 		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
-		      ~/allure/bin/allure serve reports/
+		      ~/allure/bin/allure serve reports/ &
 		   '''  
                 }
             }
