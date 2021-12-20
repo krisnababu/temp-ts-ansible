@@ -11,10 +11,13 @@ pipeline{
 	stage('Create virtualenv, run behave features and generate allure reports'){
 	    steps{
                 dir("ui-test"){
-		   sh "mkvirtualenv -r requirements.txt transtats-test"		
-		   sh "behave features"
-		   sh "behave -f allure_behave.formatter:AllureFormatter -o reports/ features/"
-		   sh "allure serve reports/"
+		   sh '''
+		      #!/bin/bash
+		      mkvirtualenv -r requirements.txt transtats-test
+		      behave features
+		      behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
+		      allure serve reports/
+		   '''  
                 }
             }
         }
