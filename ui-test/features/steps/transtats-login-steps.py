@@ -5,7 +5,7 @@ import time
 
 @given('Launch browser')
 def launch(context):
-    context.driver = webdriver.Chrome(executable_path='/home/krishna/Projects/transtats/ui-test/drivers/chromedriver')
+    context.driver = webdriver.Chrome(executable_path='./drivers/chromedriver')
 
 
 @when('Open transtats homepage')
