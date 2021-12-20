@@ -8,18 +8,7 @@ pipeline{
         }
         
 
-	stage('Generate allure jason report'){
-	    steps{
-                dir("ui-test"){
-		   sh '''
-		      #!/bin/bash
-		      source venv/bin/activate
-		      pip3 install -r requirements.txt
-		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
-		   '''  
-                }
-            }
-        }
+
 	
 	stage('Generate allure html report'){
 	    steps{
