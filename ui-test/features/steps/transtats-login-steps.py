@@ -1,11 +1,14 @@
 from behave import *
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import time
 
 
 @given('Launch browser')
 def launch(context):
-    context.driver = webdriver.Chrome(executable_path='/home/jenkins/.local/bin/chromedriver')
+    options = Options()
+    options.headless = True
+    context.driver = webdriver.Chrome(executable_path='/home/jenkins/.local/bin/chromedriver', options=options)
 
 
 @when('Open transtats homepage')
