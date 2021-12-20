@@ -12,5 +12,16 @@ pipeline{
                 ansiblePlaybook credentialsId: 'ts-database', disableHostKeyChecking: true, extras: '--extra-vars "REMOTE_USER=krishna TEST_TARGET_URL=https://github.com/transtats/transtats/archive/refs/heads/r085.zip RELEASE_TESTING=true"', installation: 'ansible-pb-buildnddeploy', inventory: 'hosts', playbook: 'provision.yml'
             }
         }
+	
+	stage('Create virtualenv, run behave features and generate allure reports'){
+	    steps{
+                dir("ui-test"){
+		   sh "mkvirtualenv -a ~/temp-ts-ansible/ui-test -r requirements.txt transtats-test"		
+		   sh "behave features"
+		   sh "behave -f allure_behave.formatter:AllureFormatter -o reports/ features/"
+		   sh "allure serve reports/"
+                }
+            }
+        }
     }
 }
