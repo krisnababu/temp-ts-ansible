@@ -5,7 +5,7 @@ import time
 
 @given('Launch browser')
 def launch(context):
-    context.driver = webdriver.Chrome(executable_path='/var/lib/jenkins/workspace/ts-release/ui-test/drivers/chromedriver')
+    context.driver = webdriver.Chrome(executable_path='/home/jenkins/.local/bin/chromedriver')
 
 
 @when('Open transtats homepage')
