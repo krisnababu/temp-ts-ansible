@@ -15,9 +15,9 @@ pipeline{
 		      #!/bin/bash
 		      source venv/bin/activate
 		      pip3 install -r requirements.txt
-		      behave features
-		      behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
-		      allure serve reports/
+		      ~/.local/bin/behave features
+		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
+		      ~/allure/bin/allure serve reports/
 		   '''  
                 }
             }
