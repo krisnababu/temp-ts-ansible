@@ -40,6 +40,6 @@ def admin_page(context):
         assert False, "Test Failed"
     if txt == "Site administration":
         assert True, "Test Passed"
-    return 0
+    assert True, "Test Passed"
     context.driver.close()
 
