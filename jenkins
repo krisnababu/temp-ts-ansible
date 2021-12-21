@@ -19,7 +19,10 @@ pipeline{
 		      set +e
 		      /usr/bin/rm -f reports/*
 		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
-		      ~/allure/bin/allure serve reports/ &
+		      ~/allure/bin/allure serve reports/ > id 2>&1 &
+		      PID=$!
+		      /usr/bin/kill -9 $PID
+		      yes | /usr/bin/cp -rf /tmp/`grep 'tmp' id | cut -d '/' -f 3`/allure-report/* /var/www/html/testreport/
 		      set -e
 		   '''  
                 }
