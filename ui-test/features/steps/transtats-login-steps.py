@@ -44,5 +44,4 @@ def admin_page(context):
         else:
             assert False, "login failed"
     finally:
-        assert True, "Test successful"
         context.driver.close()
