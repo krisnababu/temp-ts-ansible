@@ -37,9 +37,12 @@ def admin_page(context):
     try:
         txt = context.driver.find_element_by_xpath('//*[@id="content"]/h1').text
     except:
-        print("Test Failed")
+        assert Fail, "login failed"
     else:
         if txt == "Site administration":
-            print("Test Passed")
-    context.driver.close()
-
+            assert True, "login success"
+        else:
+            assert Fail, "login failed"
+    finally:
+        assert True, "Test successful"
+        context.driver.close()
