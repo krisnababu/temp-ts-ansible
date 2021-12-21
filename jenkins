@@ -22,7 +22,7 @@ pipeline{
 		      ~/allure/bin/allure serve reports/ > id 2>&1 &
 		      PID=$!
 		      /usr/bin/kill -9 $PID
-		      yes | /usr/bin/cp -rf /tmp/`grep 'tmp' id | cut -d '/' -f 3`/allure-report/* /var/www/html/testreport/
+		      /usr/bin/cp -rf /tmp/`/usr/bin/grep 'tmp' id | /usr/bin/cut -d '/' -f 3`/allure-report/* /var/www/html/testreport/
 		      set -e
 		   '''  
                 }
