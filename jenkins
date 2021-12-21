@@ -18,11 +18,7 @@ pipeline{
 		      pip3 install -r requirements.txt
 		      set +e
 		      ~/.local/bin/behave -f allure_behave.formatter:AllureFormatter -o reports/ features/
-		      ~/allure/bin/allure serve reports/  >> id 2>&1 &
-		      pid=$!
-		      /usr/bin/kill -9 $pid
-		      yes | cp -rf /tmp/`grep 'tmp' id | cut -d '/' -f 3`/allure-report/* /var/www/html/testreport/
-		      /usr/bin/rm id
+		      ~/allure/bin/allure serve reports/ &
 		      set -e
 		   '''  
                 }
