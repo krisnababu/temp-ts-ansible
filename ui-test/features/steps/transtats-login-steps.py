@@ -14,7 +14,7 @@ def launch(context):
 @when('Open transtats homepage')
 def ts_home(context):
     context.driver.get("http://10.65.207.9:8014/")
-
+    time.sleep(5)
 @when('Click on login')
 def get_login(context):
     context.driver.find_element_by_xpath("/html/body/nav/nav/ul/li[3]/a").click()
@@ -28,6 +28,7 @@ def step_impl(context, usr, passwd):
 @when('Click on login button')
 def click_login(context):
     context.driver.find_element_by_xpath("/html/body/div/div[2]/div/form/div[3]/input").click()
+    time.sleep(2)
 
 @then('Successful login to the Transtats admin page.')
 def admin_page(context):
