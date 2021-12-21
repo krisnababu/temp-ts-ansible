@@ -13,7 +13,7 @@ def launch(context):
 
 @when('Open transtats homepage')
 def ts_home(context):
-    context.driver.get("http://10.65.207.9")
+    context.driver.get("http://10.65.207.93")
     
 @when('Click on login')
 def get_login(context):
